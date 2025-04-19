@@ -81,17 +81,17 @@ local function find_notes()
         attach_mappings = function(prompt_bufnr, map)
             actions.select_default:replace(function()
                 local selection = action_state.get_selected_entry()
-                local input = action_state.get_current_line()
-                if selection == nil or not selection.value or input == "" then
+                -- 修复：如果有 selection.value 就直接打开，不管输入内容
+                if selection and selection.value then
+                    actions.close(prompt_bufnr)
+                    vim.cmd("tabnew " .. selection.value)
+                else
                     actions.close(prompt_bufnr)
                     vim.ui.input({prompt = "No match. Create new note? (y/n): "}, function(answer)
                         if answer and answer:lower():sub(1,1) == "y" then
-                            require("neote.capturenote").create(input)
+                            require("neote.capturenote").create(action_state.get_current_line())
                         end
                     end)
-                else
-                    actions.close(prompt_bufnr)
-                    vim.cmd("tabnew " .. selection.value)
                 end
             end)
             return true
