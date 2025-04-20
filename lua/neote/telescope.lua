@@ -4,7 +4,7 @@ local conf = require("telescope.config").values
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 local scan = require("plenary.scandir")
-local newnote = require("neote.newnote")
+local capturenote = require("neote.capturenote")
 
 local function fuzzy_match(str, pattern)
     -- 简单模糊匹配：pattern 的每个字符都按顺序出现在 str 中即可
@@ -89,7 +89,7 @@ local function find_notes()
                     actions.close(prompt_bufnr)
                     vim.ui.input({prompt = "No match. Create new note? (y/n): "}, function(answer)
                         if answer and answer:lower():sub(1,1) == "y" then
-                            require("neote.capturenote").create(action_state.get_current_line())
+                            capturenote.create(action_state.get_current_line())
                         end
                     end)
                 end

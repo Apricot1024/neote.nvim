@@ -16,10 +16,13 @@ function M.create(filename)
     local function do_create(name)
         local unique_name, filename = get_unique_filename(name)
         vim.ui.select(vim.fn.glob(_G.neote.config.templates_dir.."/*.md", true, true), {
-            prompt = "Select template:"
+            prompt = "Select template: (q to cancel, <Enter> for empty)"
         }, function(template)
+            if template == nil or template == "q" then
+                return -- 用户输入q，放弃新建
+            end
             local content = ""
-            if template then
+            if template and template ~= "" then
                 content = table.concat(vim.fn.readfile(template), "\n")
                 content = content:gsub("{{title}}", unique_name)
                 content = content:gsub("{{date}}", os.date("%Y-%m-%d"))
@@ -29,12 +32,14 @@ function M.create(filename)
         end)
     end
     if filename and filename ~= "" then
+        if filename == "q" then return end -- 用户输入q放弃
         do_create(filename)
     else
-        vim.ui.input({prompt = "New note filename: "}, function(input)
-            if input and input ~= "" then
-                do_create(input)
+        vim.ui.input({prompt = "New note filename: (q to cancel)"}, function(input)
+            if not input or input == "" or input == "q" then
+                return -- 用户取消或输入q，放弃新建
             end
+            do_create(input)
         end)
     end
 end
