@@ -1,4 +1,4 @@
-# Neote - Neovim Markdown 笔记管理插件 | Neovim Markdown Note Management Plugin
+# Neote.nvim - Neovim Markdown 笔记管理插件 | Neovim Markdown Note Management Plugin
 
 完全出于个人需求，希望有一款简单的neovim中markdown笔记系统管理。笔记系统简单，只需要按模板创建笔记、搜索笔记、链接笔记、有frontmatter即可。个人需求驱动开发，仍需开发。
 
@@ -16,10 +16,11 @@ Neote is a Markdown note management plugin for Neovim. It supports efficient not
 
 - 通过文件名、frontmatter 的 title/alias/description 搜索和打开笔记  
   Search and open notes by filename, frontmatter title/alias/description
-- 支持 [[链接]] 语法，（可能）自动补全和跳转  
-  [[link]] syntax with (maybe) auto-completion and jump
-- （可能）支持 Obsidian 风格的双向链接和 graph 视图（可按 tag/type 筛选）  
-  (Maybe) Obsidian-style bidirectional links and graph view (filterable by tag/type)
+- 支持 `[[链接]]` 语法，自动补全和跳转  
+  `[[link]]` syntax with auto-completion and jump
+- 支持 `[[filename#heading|custom name]]` 跳转到指定标题（严格匹配大小写和空格）
+- Obsidian 风格的双向链接和 Graph 视图  
+  Obsidian-style bidirectional links and graph view
 - 新建笔记时可选择模板，自动避免重名  
   Create notes from templates, auto-avoid duplicate names
 - 智能高亮未链接内容，辅助知识网络构建  
@@ -27,29 +28,13 @@ Neote is a Markdown note management plugin for Neovim. It supports efficient not
 
 ---
 
-## 正在调整 | In Progress
-**这些特性尚不可完全使用。**
-
-**These features are not yet fully available.**
-- 链接跳转bug  
-  Link jump bug
-- 链接补全  
-  Link completion
-- 新建模板  
-  New template
-
----
-
 ## 安装 | Installation
 
-建议使用 [lazy.nvim](https://github.com/folke/lazy.nvim)管理插件：  
-It is recommended to use [lazy.nvim](https://github.com/folke/lazy.nvim) to manage plugins:
-
-**lazy.nvim 配置示例 | Example for lazy.nvim:**
+建议使用 [lazy.nvim](https://github.com/folke/lazy.nvim) 管理插件：
 
 ```lua
 {
-    dir = "/your/path/to/neote", -- 本地开发路径 | Local development path
+    dir = "/your/path/to/neote.nvim",
     dependencies = {
         "nvim-lua/plenary.nvim",
         "nvim-telescope/telescope.nvim",
@@ -76,8 +61,46 @@ It is recommended to use [lazy.nvim](https://github.com/folke/lazy.nvim) to mana
    In markdown, type `[[` to auto-complete note name/title/alias
 4. 在 `[[name]]` 上按 `gf` 跳转到对应笔记  
    Press `gf` on `[[name]]` to jump to the note
-5. `:NeoteGraph` 查看笔记网络关系图  
+5. `:NeoteLinks` 查看当前笔记所有出链/入链并跳转  
+   Use `:NeoteLinks` to view all outlinks/inlinks and jump
+6. `:NeoteGraph` 查看笔记网络关系图  
    Use `:NeoteGraph` to view the note network graph
+
+---
+
+## 链接语法 | Link Syntax
+
+- `[[filename]]` 跳转到 filename.md
+- `[[filename|custom name]]` 跳转到 filename.md，显示自定义名
+- `[[filename#heading|custom name]]` 跳转到 filename.md 的指定 heading（严格匹配大小写和空格）
+
+---
+
+## Frontmatter 规则 | Frontmatter Rules
+
+每个笔记文件建议包含如下 frontmatter：
+
+```yaml
+---
+title: "My Note Title"
+alias: alias1, alias2, another alias
+tags: tag1, tag2
+description: 简要描述
+---
+```
+
+- `title`：引号内内容整体为标题，允许空格
+- `alias`：用英文逗号分隔，逗号之间的空格属于 alias 内容本身，不会分割为多个 alias。例如 `alias: foo, bar baz` 解析为 `{"foo", "bar baz"}`
+
+---
+
+## 主要命令 | Main Commands
+
+- `:NeoteFind` 搜索并打开笔记
+- `:NeoteCapture [name]` 新建笔记
+- `:NeoteLinks` 查看当前笔记所有出链/入链并跳转
+- `:NeoteGraph` 打开笔记网络关系图
+- 在 `[[link]]` 上按 `gf` 跳转（支持 `#heading`）
 
 ---
 
@@ -102,11 +125,6 @@ templates/
 
 ## 贡献与反馈 | Contribution & Feedback
 
-欢迎 issue、PR 或建议！  
-Feel free to open issues, pull requests, or suggestions!
+纯个人需求，请假定我不会相应任何请求！
 
-<!-- ---
-
-## License
-
-MIT -->
+Purely personal needs, please assume I won't respond to any requests!
