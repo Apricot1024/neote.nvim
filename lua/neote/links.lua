@@ -94,18 +94,24 @@ function M.show_links()
         return
     end
     local select_items = {}
+    local seen = {}
     for _, group in ipairs(opts) do
         table.insert(select_items, '--- '..group.group..' ---')
         for _, k in ipairs(group.items) do
-            local path = idx.titles[k] or idx.aliases[k]
-            table.insert(select_items, (k or "")..(path and (" ("..vim.fn.fnamemodify(path, ":t")..")") or ""))
+            local file = k:match("^([^#|]+)") or k
+            file = vim.trim(file)
+            if not seen[file] then
+                local path = idx.titles[file:lower()] or idx.aliases[file:lower()]
+                table.insert(select_items, (file or "")..(path and (" ("..vim.fn.fnamemodify(path, ":t")..")") or ""))
+                seen[file] = true
+            end
         end
     end
     vim.ui.select(select_items, {prompt = "Links (选择跳转):"}, function(choice)
         if not choice or choice:match('^%-%-%-') then return end
         local link = choice:match("^([^%s%(]+)")
         if not link then return end
-        local path = idx.titles[link] or idx.aliases[link]
+        local path = idx.titles[link:lower()] or idx.aliases[link:lower()]
         if path then vim.cmd("edit "..path) end
     end)
 end
@@ -142,13 +148,26 @@ function M.jump_link()
     link = vim.trim(link)
     if link == '' then return end
     local real_link = link:match("^([^|]+)") or link
-    real_link = vim.trim(real_link):lower()
+    real_link = vim.trim(real_link)
+    local filename, heading = real_link:match("^([^#]+)#(.+)$")
+    filename = filename or real_link
     local idx = build_index()
-    local path = idx.titles[real_link] or idx.aliases[real_link]
+    local path = idx.titles[filename:lower()] or idx.aliases[filename:lower()]
     if path then
         vim.cmd("edit "..path)
+        if heading then
+            -- 严格匹配 heading（不忽略大小写和空格）
+            local lines = vim.fn.getbufline(path, 1, '$')
+            for i, line in ipairs(lines) do
+                if line:match("^#+%s*"..vim.pesc(heading).."%s*$") then
+                    vim.api.nvim_win_set_cursor(0, {i, 0})
+                    break
+                end
+            end
+        end
     else
-        vim.notify("Note not found: "..real_link, vim.log.levels.WARN)
+        -- 若未找到笔记则创建
+        vim.cmd("NeoteCapture "..filename)
     end
 end
 

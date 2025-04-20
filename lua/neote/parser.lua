@@ -10,8 +10,8 @@ return {
                     value = value:gsub('^%s+', ''):gsub('%s+$', '')
                     if key == "alias" or key == "tags" then
                         local t = {}
-                        for v in value:gmatch("[^,%s]+") do
-                            table.insert(t, v)
+                        for v in value:gmatch("([^,]+)") do
+                            table.insert(t, vim.trim(v))
                         end
                         result[key] = t
                     else
