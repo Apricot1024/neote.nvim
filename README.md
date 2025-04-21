@@ -1,6 +1,6 @@
-# Neote.nvim - Neovim Markdown 笔记管理插件 | Neovim Markdown Note Management Plugin
+# Neote.nvim - Neovim 笔记管理插件 | Neovim Note Management Plugin
 
-完全出于个人需求，希望有一款简单的 Neovim Markdown 笔记系统管理。笔记系统简单，只需要按模板创建笔记、搜索笔记、链接笔记、有 frontmatter 即可。个人需求驱动开发，仍需开发。
+完全出于个人需求，希望有一款简单的 Neovim 的 Markdown 笔记系统管理。笔记系统简单，只需要按模板创建笔记、搜索笔记、链接笔记、有 frontmatter 即可。个人需求驱动开发，仍需开发。
 
 *Purely for personal needs, I wanted a simple markdown note management system in Neovim. The system is simple: just create notes from templates, search notes, link notes, and support frontmatter. Development is driven by personal needs and is still ongoing.*
 
