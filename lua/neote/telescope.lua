@@ -1,13 +1,17 @@
-local pickers = require("telescope.pickers")
-local finders = require("telescope.finders")
-local conf = require("telescope.config").values
-local actions = require("telescope.actions")
-local action_state = require("telescope.actions.state")
-local scan = require("plenary.scandir")
-local capturenote = require("neote.capturenote")
+-- neote.nvim/lua/neote/telescope.lua
+-- 该模块实现了基于 Telescope 的笔记搜索与插入链接功能
+-- 包括 NeoteFind（查找/打开笔记）和 NeoteInsert（插入链接）命令
 
+local pickers = require("telescope.pickers")           -- Telescope 弹窗选择器
+local finders = require("telescope.finders")           -- Telescope 查找器
+local conf = require("telescope.config").values        -- Telescope 配置
+local actions = require("telescope.actions")            -- Telescope 动作
+local action_state = require("telescope.actions.state") -- Telescope 状态
+local scan = require("plenary.scandir")                 -- 目录扫描工具
+local capturenote = require("neote.capturenote")        -- 新建笔记逻辑
+
+-- 简单模糊匹配：pattern 的每个字符都按顺序出现在 str 中即可
 local function fuzzy_match(str, pattern)
-    -- 简单模糊匹配：pattern 的每个字符都按顺序出现在 str 中即可
     str, pattern = str:lower(), pattern:lower()
     local j = 1
     for i = 1, #pattern do
@@ -19,6 +23,7 @@ local function fuzzy_match(str, pattern)
     return true
 end
 
+-- 获取所有笔记条目，包含 frontmatter 信息、文件名、可搜索内容等
 local function get_note_entries()
     local notes = scan.scan_dir(_G.neote.config.notes_dir, {search_pattern = "%.md$"})
     local entries = {}
@@ -33,16 +38,17 @@ local function get_note_entries()
         local search_keys = {title, description, filename}
         for _, a in ipairs(aliases) do table.insert(search_keys, a) end
         table.insert(entries, {
-            value = path,
-            _title = title,
-            _aliases = aliases,
-            _filename = filename,
-            ordinal = table.concat(search_keys, " "),
+            value = path,           -- 文件路径
+            _title = title,         -- frontmatter 标题
+            _aliases = aliases,     -- frontmatter 别名
+            _filename = filename,   -- 文件名（不含扩展名）
+            ordinal = table.concat(search_keys, " "), -- 用于排序/搜索的字符串
         })
     end
     return entries
 end
 
+-- 高亮显示条目标签（如 title/alias 命中时加标记）
 local function highlight_label(entry, prompt)
     local prompt_l = vim.trim(prompt or ""):lower()
     local marks = {}
@@ -63,6 +69,7 @@ local function highlight_label(entry, prompt)
     end
 end
 
+-- NeoteFind：Telescope 搜索并打开笔记
 local function find_notes()
     local entries = get_note_entries()
     local last_prompt = ""
@@ -70,7 +77,57 @@ local function find_notes()
         entry.display = highlight_label(entry, last_prompt)
     end
     pickers.new({}, {
-        prompt_title = "Find Notes",
+        prompt_title = "Find Notes", -- 弹窗标题
+        finder = finders.new_table({
+            results = entries,
+            entry_maker = function(entry)
+                return entry
+            end
+        }),
+        -- 使用 fzf 排序器（如可用），否则用默认排序
+        sorter = (require("telescope").extensions and require("telescope").extensions.fzf and require("telescope").extensions.fzf.native_fzf_sorter and require("telescope").extensions.fzf.native_fzf_sorter()) or conf.generic_sorter({}),
+        attach_mappings = function(prompt_bufnr, map)
+            actions.select_default:replace(function()
+                local selection = action_state.get_selected_entry()
+                -- 若有 selection.value，直接打开文件
+                if selection and selection.value then
+                    actions.close(prompt_bufnr)
+                    vim.cmd("tabnew " .. selection.value)
+                else
+                    actions.close(prompt_bufnr)
+                    -- 没有匹配项时可新建笔记
+                    vim.ui.input({prompt = "No match. Create new note? (y/n): "}, function(answer)
+                        if answer and answer:lower():sub(1,1) == "y" then
+                            capturenote.create(action_state.get_current_line())
+                        end
+                    end)
+                end
+            end)
+            return true
+        end,
+        previewer = false, -- 不显示预览
+        entry_display = function(entry)
+            return entry.display or entry._filename or ""
+        end,
+        on_input_filter_cb = function(prompt)
+            last_prompt = prompt or ""
+            for _, entry in ipairs(entries) do
+                entry.display = highlight_label(entry, last_prompt)
+            end
+            return {prompt = prompt}
+        end,
+    }):find()
+end
+
+-- NeoteInsert：Telescope 搜索后在光标处插入 [[filename]] 链接
+local function insert_link_at_cursor()
+    local entries = get_note_entries()
+    local last_prompt = ""
+    for _, entry in ipairs(entries) do
+        entry.display = highlight_label(entry, last_prompt)
+    end
+    pickers.new({}, {
+        prompt_title = "Insert Note Link",
         finder = finders.new_table({
             results = entries,
             entry_maker = function(entry)
@@ -81,17 +138,21 @@ local function find_notes()
         attach_mappings = function(prompt_bufnr, map)
             actions.select_default:replace(function()
                 local selection = action_state.get_selected_entry()
-                -- 修复：如果有 selection.value 就直接打开，不管输入内容
-                if selection and selection.value then
+                if selection and selection._filename then
                     actions.close(prompt_bufnr)
-                    vim.cmd("tabnew " .. selection.value)
+                    -- 构造链接文本
+                    local link = string.format("[[%s]]", selection._filename)
+                    -- 获取当前光标位置
+                    local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+                    local line = vim.api.nvim_get_current_line()
+                    local before = line:sub(1, col)
+                    local after = line:sub(col + 1)
+                    local new_line = before .. link .. after
+                    vim.api.nvim_set_current_line(new_line)
+                    -- 移动光标到插入后
+                    vim.api.nvim_win_set_cursor(0, {row, col + #link})
                 else
                     actions.close(prompt_bufnr)
-                    vim.ui.input({prompt = "No match. Create new note? (y/n): "}, function(answer)
-                        if answer and answer:lower():sub(1,1) == "y" then
-                            capturenote.create(action_state.get_current_line())
-                        end
-                    end)
                 end
             end)
             return true
@@ -110,9 +171,13 @@ local function find_notes()
     }):find()
 end
 
+-- 导出接口，注册命令
 return {
     setup = function()
+        -- 注册 NeoteFind 命令
         vim.api.nvim_create_user_command("NeoteFind", find_notes, {})
+        -- 注册 NeoteInsert 命令
+        vim.api.nvim_create_user_command("NeoteInsert", insert_link_at_cursor, {})
     end,
     search_notes = find_notes
 }

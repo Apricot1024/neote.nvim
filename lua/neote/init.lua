@@ -21,7 +21,6 @@ function M.setup(opts)
     vim.api.nvim_create_user_command("NeoteCapture", function(opts)
         require("neote.capturenote").create(opts.args)
     end, {nargs = "?"})
-    require("neote.completion").setup()
 end
 
 return M
