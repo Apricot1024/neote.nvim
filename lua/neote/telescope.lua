@@ -9,6 +9,8 @@ local actions = require("telescope.actions")            -- Telescope 动作
 local action_state = require("telescope.actions.state") -- Telescope 状态
 local scan = require("plenary.scandir")                 -- 目录扫描工具
 local capturenote = require("neote.capturenote")        -- 新建笔记逻辑
+local previewers = require("telescope.previewers")      -- Telescope 预览器
+local utils = require("telescope.previewers.utils")     -- Telescope 工具
 
 -- 简单模糊匹配：pattern 的每个字符都按顺序出现在 str 中即可
 local function fuzzy_match(str, pattern)
@@ -69,6 +71,27 @@ local function highlight_label(entry, prompt)
     end
 end
 
+-- 自定义预览器：显示文件内容
+local function note_previewer()
+    return previewers.new_buffer_previewer({
+        define_preview = function(self, entry, status)
+            local path = entry.value or entry.path
+            if not path or vim.fn.filereadable(path) == 0 then
+                vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, {"No file"})
+                return
+            end
+            local lines = vim.fn.readfile(path)
+            -- 只显示前 50 行，防止大文件卡顿
+            if #lines > 50 then
+                lines = vim.list_slice(lines, 1, 50)
+                table.insert(lines, "...(truncated)")
+            end
+            vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+            utils.highlighter(self.state.bufnr, path)
+        end,
+    })
+end
+
 -- NeoteFind：Telescope 搜索并打开笔记
 local function find_notes()
     local entries = get_note_entries()
@@ -105,7 +128,7 @@ local function find_notes()
             end)
             return true
         end,
-        previewer = false, -- 不显示预览
+        previewer = note_previewer(), -- 启用内容预览
         entry_display = function(entry)
             return entry.display or entry._filename or ""
         end,
@@ -157,7 +180,7 @@ local function insert_link_at_cursor()
             end)
             return true
         end,
-        previewer = false,
+        previewer = note_previewer(), -- 启用内容预览
         entry_display = function(entry)
             return entry.display or entry._filename or ""
         end,
