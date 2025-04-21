@@ -22,7 +22,7 @@ function M.setup(opts)
     vim.api.nvim_create_user_command("NeoteCapture", function(opts)
         require("neote.capturenote").create(opts.args)
     end, {nargs = "?"})
-    -- require("neote.graph").setup()
+    require("neote.graph").setup()
 end
 
 return M
