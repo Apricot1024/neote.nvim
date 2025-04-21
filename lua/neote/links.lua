@@ -151,8 +151,13 @@ function M.jump_link()
     real_link = vim.trim(real_link)
     local filename, heading = real_link:match("^([^#]+)#(.+)$")
     filename = filename or real_link
+    -- 新增：兼容 filename.md 结尾
+    local filename_key = filename
+    if filename_key:sub(-3) == ".md" then
+        filename_key = filename_key:sub(1, -4)
+    end
     local idx = build_index()
-    local path = idx.titles[filename:lower()] or idx.aliases[filename:lower()]
+    local path = idx.titles[filename:lower()] or idx.titles[filename_key:lower()] or idx.aliases[filename:lower()] or idx.aliases[filename_key:lower()]
     if path then
         vim.cmd("edit "..path)
         if heading then
@@ -167,7 +172,7 @@ function M.jump_link()
         end
     else
         -- 若未找到笔记则创建
-        vim.cmd("NeoteCapture "..filename)
+        vim.cmd("NeoteCapture "..filename_key)
     end
 end
 
