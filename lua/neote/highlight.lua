@@ -1,5 +1,27 @@
+-- 智能高亮未链接内容的模块
 local M = {}
+
 local ns = vim.api.nvim_create_namespace("neote_highlight")
+
+-- 判断某个区间是否在 [[...]] 内
+local function is_in_bracket(line, s, e)
+    local left = nil
+    local i = s
+    while i > 1 do
+        if line:sub(i-1, i) == '[[' then left = i-1; break end
+        i = i - 1
+    end
+    local right = nil
+    i = e
+    while i < #line do
+        if line:sub(i+1, i+2) == ']]' then right = i+2; break end
+        i = i + 1
+    end
+    if left and right and left < s and right > e then
+        return true
+    end
+    return false
+end
 
 function M.setup()
     vim.api.nvim_create_autocmd({"BufWritePost", "TextChanged", "BufEnter"}, {
@@ -7,21 +29,63 @@ function M.setup()
         callback = function()
             local bufnr = vim.api.nvim_get_current_buf()
             local idx = require("neote.links").build_index()
+            local path = vim.api.nvim_buf_get_name(bufnr)
+            local fm = require("neote.parser").parse_frontmatter(path)
+            local filename = vim.fn.fnamemodify(path, ":t:r")
+            -- 当前笔记的所有key（文件名、title、alias），全部小写
+            local skip_keys = {}
+            skip_keys[filename:lower()] = true
+            if fm.title then skip_keys[fm.title:lower()] = true end
+            if fm.alias then
+                for _, a in ipairs(fm.alias) do
+                    skip_keys[a:lower()] = true
+                end
+            end
+            -- 合并所有 title/alias，避免重复
+            local keys = {}
+            for k, _ in pairs(idx.titles) do
+                if not skip_keys[k] then keys[k] = true end
+            end
+            for k, _ in pairs(idx.aliases) do
+                if not skip_keys[k] then keys[k] = true end
+            end
             local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+            -- 跳过 frontmatter 区域
+            local fm_start, fm_end = nil, nil
+            for i, line in ipairs(lines) do
+                if not fm_start and line:match("^%-%-%-") then
+                    fm_start = i
+                elseif fm_start and not fm_end and line:match("^%-%-%-") then
+                    fm_end = i
+                    break
+                end
+            end
             for lnum, line in ipairs(lines) do
+                -- 跳过 frontmatter 区域
+                if fm_start and fm_end and lnum >= fm_start and lnum <= fm_end then
+                    vim.api.nvim_buf_clear_namespace(bufnr, ns, lnum-1, lnum)
+                    goto continue
+                end
                 vim.api.nvim_buf_clear_namespace(bufnr, ns, lnum-1, lnum)
-                for word in line:gmatch("%w[%w%-_]+") do
-                    if (idx.titles[word:lower()] or idx.aliases[word:lower()])
-                        and not line:find("%[%["..word.."%]%]") then
-                        local start_col = line:find(word)
-                        if start_col then
-                            vim.api.nvim_buf_set_extmark(bufnr, ns, lnum-1, start_col-1, {
-                                virt_text = {{"💡 [["..word.."]]", "Comment"}},
-                                virt_text_pos = "inline"
-                            })
+                local lower_line = line:lower()
+                for key, _ in pairs(keys) do
+                    if key ~= "" then
+                        local search_start = 1
+                        local lower_key = key:lower()
+                        while true do
+                            local s, e = lower_line:find(lower_key, search_start, true)
+                            if not s then break end
+                            if not is_in_bracket(line, s, e) then
+                                vim.api.nvim_buf_set_extmark(bufnr, ns, lnum-1, s-1, {
+                                    virt_text = {{"💡 [["..key.."]]", "Comment"}},
+                                    virt_text_pos = "inline"
+                                })
+                            end
+                            search_start = e + 1
                         end
                     end
                 end
+                ::continue::
             end
         end
     })
