@@ -12,9 +12,18 @@ local capturenote = require("neote.capturenote")        -- 新建笔记逻辑
 local previewers = require("telescope.previewers")      -- Telescope 预览器
 local utils = require("telescope.previewers.utils")     -- Telescope 工具
 
+-- 规范化文本：将短横线、下划线和空格统一处理为空格，便于匹配
+local function normalize_text(text)
+    return text:gsub("[-_]", " ")
+end
+
 -- 简单模糊匹配：pattern 的每个字符都按顺序出现在 str 中即可
+-- 增强版：将短横线、下划线、空格视为等价字符
 local function fuzzy_match(str, pattern)
-    str, pattern = str:lower(), pattern:lower()
+    -- 将短横线、下划线统一为空格后再比较
+    str = normalize_text(str:lower())
+    pattern = normalize_text(pattern:lower())
+    
     local j = 1
     for i = 1, #pattern do
         local c = pattern:sub(i,i)
@@ -55,12 +64,18 @@ local function highlight_label(entry, prompt)
     local prompt_l = vim.trim(prompt or ""):lower()
     local marks = {}
     if entry._title and entry._title ~= entry._filename then
-        if entry._title:lower():find(prompt_l, 1, true) or fuzzy_match(entry._title, prompt_l) then
+        -- 使用规范化文本匹配
+        local norm_title = normalize_text(entry._title:lower())
+        local norm_prompt = normalize_text(prompt_l)
+        if norm_title:find(norm_prompt, 1, true) or fuzzy_match(entry._title, prompt_l) then
             table.insert(marks, "title: "..entry._title)
         end
     end
     for _, a in ipairs(entry._aliases or {}) do
-        if a:lower():find(prompt_l, 1, true) or fuzzy_match(a, prompt_l) then
+        -- 使用规范化文本匹配
+        local norm_alias = normalize_text(a:lower())
+        local norm_prompt = normalize_text(prompt_l)
+        if norm_alias:find(norm_prompt, 1, true) or fuzzy_match(a, prompt_l) then
             table.insert(marks, "alias: "..a)
         end
     end

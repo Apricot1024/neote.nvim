@@ -3,6 +3,11 @@ local M = {}
 
 local ns = vim.api.nvim_create_namespace("neote_highlight")
 
+-- 规范化文本：将短横线、下划线和空格统一处理为空格，便于匹配
+local function normalize_text(text)
+    return text:gsub("[-_]", " ")
+end
+
 -- 判断某个区间是否在 [[...]] 内
 local function is_in_bracket(line, s, e)
     local left = nil
@@ -68,13 +73,20 @@ function M.setup()
                 end
                 vim.api.nvim_buf_clear_namespace(bufnr, ns, lnum-1, lnum)
                 local lower_line = line:lower()
+                local normalized_line = normalize_text(lower_line)
+                
                 for key, _ in pairs(keys) do
                     if key ~= "" then
                         local search_start = 1
                         local lower_key = key:lower()
+                        local normalized_key = normalize_text(lower_key)
+                        
                         while true do
-                            local s, e = lower_line:find(lower_key, search_start, true)
+                            -- 使用规范化后的文本进行匹配
+                            local s, e = normalized_line:find(normalized_key, search_start, true)
                             if not s then break end
+                            
+                            -- 判断原始文本中的等效位置是否已经在 [[...]] 中
                             if not is_in_bracket(line, s, e) then
                                 vim.api.nvim_buf_set_extmark(bufnr, ns, lnum-1, s-1, {
                                     virt_text = {{"💡 [["..key.."]]", "Comment"}},
