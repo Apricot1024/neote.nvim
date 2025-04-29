@@ -8,6 +8,15 @@ local function normalize_text(text)
     return text:gsub("[-_]", " ")
 end
 
+-- 去掉标题中的双引号
+local function strip_quotes(title)
+    if type(title) == "string" then
+        -- 去掉开头和结尾的双引号
+        return title:gsub('^%s*"(.-)"%s*$', '%1')
+    end
+    return title
+end
+
 -- 判断某个区间是否在 [[...]] 内
 local function is_in_bracket(line, s, e)
     local left = nil
@@ -40,7 +49,11 @@ function M.setup()
             -- 当前笔记的所有key（文件名、title、alias），全部小写
             local skip_keys = {}
             skip_keys[filename:lower()] = true
-            if fm.title then skip_keys[fm.title:lower()] = true end
+            -- 确保去掉title中的引号
+            if fm.title then 
+                local clean_title = strip_quotes(fm.title)
+                skip_keys[clean_title:lower()] = true 
+            end
             if fm.alias then
                 for _, a in ipairs(fm.alias) do
                     skip_keys[a:lower()] = true
@@ -48,8 +61,12 @@ function M.setup()
             end
             -- 合并所有 title/alias，避免重复
             local keys = {}
+            -- 处理所有标题，确保去掉引号
             for k, _ in pairs(idx.titles) do
-                if not skip_keys[k] then keys[k] = true end
+                local clean_key = strip_quotes(k)
+                if not skip_keys[clean_key:lower()] then 
+                    keys[clean_key] = true 
+                end
             end
             for k, _ in pairs(idx.aliases) do
                 if not skip_keys[k] then keys[k] = true end

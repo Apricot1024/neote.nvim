@@ -132,11 +132,29 @@ local function find_notes()
                     actions.close(prompt_bufnr)
                     vim.cmd("tabnew " .. selection.value)
                 else
+                    local current_line = action_state.get_current_line()
                     actions.close(prompt_bufnr)
-                    -- 没有匹配项时可新建笔记
-                    vim.ui.input({prompt = "No match. Create new note? (y/n): "}, function(answer)
-                        if answer and answer:lower():sub(1,1) == "y" then
-                            capturenote.create(action_state.get_current_line())
+                    
+                    -- 没有匹配项时使用居中输入框询问是否新建笔记
+                    -- 使用 vim.schedule 确保 Telescope 关闭后再显示输入框
+                    vim.schedule(function()
+                        local create_centered_floating_input = require("neote.capturenote").create_centered_floating_input
+                        if create_centered_floating_input then
+                            create_centered_floating_input({
+                                prompt = "No match. Create new note? (y/n): ",
+                                default = "y"  -- 默认为 y, 方便用户直接按回车确认
+                            }, function(answer)
+                                if answer and answer:lower():sub(1,1) == "y" then
+                                    capturenote.create(current_line)
+                                end
+                            end)
+                        else
+                            -- 降级到默认输入
+                            vim.ui.input({prompt = "No match. Create new note? (y/n): "}, function(answer)
+                                if answer and answer:lower():sub(1,1) == "y" then
+                                    capturenote.create(current_line)
+                                end
+                            end)
                         end
                     end)
                 end
@@ -154,6 +172,13 @@ local function find_notes()
             end
             return {prompt = prompt}
         end,
+        -- 添加布局配置，使预览窗口更宽
+        layout_strategy = "horizontal",
+        layout_config = {
+            width = 0.9,
+            height = 0.8,
+            preview_width = 0.6, -- 预览窗口占总宽度的60%
+        },
     }):find()
 end
 
@@ -206,6 +231,13 @@ local function insert_link_at_cursor()
             end
             return {prompt = prompt}
         end,
+        -- 添加布局配置，使预览窗口更宽
+        layout_strategy = "horizontal",
+        layout_config = {
+            width = 0.9,
+            height = 0.8,
+            preview_width = 0.6, -- 预览窗口占总宽度的60%
+        },
     }):find()
 end
 

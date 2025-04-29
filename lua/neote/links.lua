@@ -4,6 +4,15 @@ local M = {}
 local scan = require("plenary.scandir")
 local parser = require("neote.parser")
 
+-- 去掉标题中的双引号
+local function strip_quotes(title)
+    if type(title) == "string" then
+        -- 去掉开头和结尾的双引号
+        return title:gsub('^%s*"(.-)"%s*$', '%1')
+    end
+    return title
+end
+
 local function build_index()
     -- always rebuild for up-to-date links
     local notes = scan.scan_dir(_G.neote.config.notes_dir, {search_pattern = "%.md$"})
@@ -13,12 +22,25 @@ local function build_index()
         local filename = vim.fn.fnamemodify(path, ":t:r")
         local title = fm.title or filename
         file2title[path] = title
+        
         -- 标准化所有可用key
         titles[title:lower()] = path
+        
+        -- 如果标题带引号，添加无引号版本的映射
+        local stripped_title = strip_quotes(title)
+        if stripped_title ~= title then
+            titles[stripped_title:lower()] = path
+        end
+        
         titles[filename:lower()] = path
         if fm.alias then
             for _, a in ipairs(fm.alias) do
                 aliases[a:lower()] = path
+                -- 同样处理别名里的引号
+                local stripped_alias = strip_quotes(a)
+                if stripped_alias ~= a then
+                    aliases[stripped_alias:lower()] = path
+                end
             end
         end
     end
@@ -156,17 +178,42 @@ function M.jump_link()
     if filename_key:sub(-3) == ".md" then
         filename_key = filename_key:sub(1, -4)
     end
+    
     local idx = build_index()
-    local path = idx.titles[filename:lower()] or idx.titles[filename_key:lower()] or idx.aliases[filename:lower()] or idx.aliases[filename_key:lower()]
+    -- 寻找目标路径时自动处理有无引号的情况
+    local path = idx.titles[filename:lower()] or 
+                 idx.titles[filename_key:lower()] or 
+                 idx.titles[strip_quotes(filename):lower()] or
+                 idx.titles[strip_quotes(filename_key):lower()] or
+                 idx.aliases[filename:lower()] or 
+                 idx.aliases[filename_key:lower()] or
+                 idx.aliases[strip_quotes(filename):lower()] or
+                 idx.aliases[strip_quotes(filename_key):lower()]
+    
     if path then
         vim.cmd("edit "..path)
         if heading then
-            -- 严格匹配 heading（不忽略大小写和空格）
+            -- 标题可能有引号，尝试两种形式匹配
+            local stripped_heading = strip_quotes(heading)
             local lines = vim.fn.getbufline(path, 1, '$')
+            local found = false
+            
+            -- 先尝试精确匹配
             for i, line in ipairs(lines) do
                 if line:match("^#+%s*"..vim.pesc(heading).."%s*$") then
                     vim.api.nvim_win_set_cursor(0, {i, 0})
+                    found = true
                     break
+                end
+            end
+            
+            -- 如果没找到且heading可能有引号，尝试去引号后匹配
+            if not found and stripped_heading ~= heading then
+                for i, line in ipairs(lines) do
+                    if line:match("^#+%s*"..vim.pesc(stripped_heading).."%s*$") then
+                        vim.api.nvim_win_set_cursor(0, {i, 0})
+                        break
+                    end
                 end
             end
         end
