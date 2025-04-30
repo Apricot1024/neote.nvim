@@ -49,30 +49,26 @@ Neote 是一个为 Neovim 设计的 Markdown 笔记管理插件，支持高效�
 
 ```lua
 return {
-	dir = "~/neote.nvim/",
+	"Apricot1024/neote.nvim",
 	name = "neote",
 	dependencies = {
 		"nvim-telescope/telescope.nvim",
 		"nvim-lua/plenary.nvim",
+		"saghen/blink.cmp",
 	},
 	event = "VeryLazy",
 	opts = {
-		notes_dir = "~/neote_note/notes",
-		templates_dir = "~/neote_note/templates",
+		notes_dir = "/home/usrname/Documents/neote_note/notes",
+		templates_dir = "/home/usrname/Documents/neote_note/templates",
 		diary = {
-            dir = "~/neote_note/diary", -- 日记目录
-            templates = {
-                daily = "daily.md",     -- 每日日记模板
-                weekly = "weekly.md",   -- 每周日记模板
-                monthly = "monthly.md", -- 每月日记模板
-            }
-        }
+			dir = "/home/usrname/Documents/neote_note/diary",
+		},
 	},
 	keys = {
 		{ "<leader>nf", "<cmd>NeoteFind<cr>", desc = "Find notes" },
 		{ "<leader>nc", "<cmd>NeoteCapture<cr>", desc = "Capture note" },
-        { "<leader>nd", "<cmd>NeoteDiary<cr>", desc = "Create diary entry" },
-        { "<leader>ndf", "<cmd>NeoteDiaryFind<cr>", desc = "Find diary entries" },
+		{ "<leader>ndc", "<cmd>NeoteDiary<cr>", desc = "Create diary entry" },
+		{ "<leader>ndf", "<cmd>NeoteDiaryFind<cr>", desc = "Find diary entries" },
 	},
 	config = function(_, opts)
 		require("neote").setup(opts)

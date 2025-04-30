@@ -15,9 +15,21 @@ end
 
 local function build_index()
     -- always rebuild for up-to-date links
-    local notes = scan.scan_dir(_G.neote.config.notes_dir, {search_pattern = "%.md$"})
+    local notes = {}
+    local ok, result = pcall(function()
+        return scan.scan_dir(_G.neote.config.notes_dir, {search_pattern = "%.md$"})
+    end)
+    if ok then
+        notes = result
+    end
+    
     local titles, aliases, outlinks, backlinks, file2title, all_links = {}, {}, {}, {}, {}, {}
     for _, path in ipairs(notes) do
+        -- Skip if file isn't readable
+        if vim.fn.filereadable(path) ~= 1 then
+            goto continue
+        end
+        
         local fm = parser.parse_frontmatter(path)
         local filename = vim.fn.fnamemodify(path, ":t:r")
         local title = fm.title or filename
@@ -43,14 +55,26 @@ local function build_index()
                 end
             end
         end
+        ::continue::
     end
+    
     -- 存储所有链接的指向关系
     for _, path in ipairs(notes) do
-        local lines = vim.fn.readfile(path)
+        -- Skip if file isn't readable
+        if vim.fn.filereadable(path) ~= 1 then
+            goto continue
+        end
+        
+        local status, lines = pcall(vim.fn.readfile, path)
+        if not status then
+            goto continue
+        end
+        
         local fm = parser.parse_frontmatter(path)
         local filename = vim.fn.fnamemodify(path, ":t:r")
         local title = fm.title or filename
         local outs = {}
+        
         for _, line in ipairs(lines) do
             for link in line:gmatch("%[%[([^%[%]]+)%]%]") do
                 local link_key = vim.trim((link:match("^([^|]+)") or link)):lower()
@@ -61,7 +85,9 @@ local function build_index()
             end
         end
         outlinks[title:lower()] = outs
+        ::continue::
     end
+    
     -- 重新计算backlinks，遍历所有笔记和所有链接
     for from_path, links in pairs(all_links) do
         for _, link_key in ipairs(links) do

@@ -42,8 +42,23 @@ function M.setup()
         pattern = "*.md",
         callback = function()
             local bufnr = vim.api.nvim_get_current_buf()
-            local idx = require("neote.links").build_index()
             local path = vim.api.nvim_buf_get_name(bufnr)
+            
+            -- Skip processing if file doesn't exist or isn't readable
+            if not path or path == "" or vim.fn.filereadable(path) ~= 1 then
+                return
+            end
+            
+            -- Protection against errors during index building
+            local idx
+            local status, result = pcall(function()
+                return require("neote.links").build_index()
+            end)
+            if not status then
+                return
+            end
+            idx = result
+            
             local fm = require("neote.parser").parse_frontmatter(path)
             local filename = vim.fn.fnamemodify(path, ":t:r")
             -- 当前笔记的所有key（文件名、title、alias），全部小写
@@ -71,7 +86,14 @@ function M.setup()
             for k, _ in pairs(idx.aliases) do
                 if not skip_keys[k] then keys[k] = true end
             end
-            local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+            
+            -- Get buffer lines safely
+            local lines
+            status, lines = pcall(vim.api.nvim_buf_get_lines, bufnr, 0, -1, false)
+            if not status or not lines then
+                return
+            end
+            
             -- 跳过 frontmatter 区域
             local fm_start, fm_end = nil, nil
             for i, line in ipairs(lines) do
@@ -82,6 +104,7 @@ function M.setup()
                     break
                 end
             end
+            
             for lnum, line in ipairs(lines) do
                 -- 跳过 frontmatter 区域
                 if fm_start and fm_end and lnum >= fm_start and lnum <= fm_end then
@@ -105,7 +128,7 @@ function M.setup()
                             
                             -- 判断原始文本中的等效位置是否已经在 [[...]] 中
                             if not is_in_bracket(line, s, e) then
-                                vim.api.nvim_buf_set_extmark(bufnr, ns, lnum-1, s-1, {
+                                pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, lnum-1, s-1, {
                                     virt_text = {{"💡 [["..key.."]]", "Comment"}},
                                     virt_text_pos = "inline"
                                 })

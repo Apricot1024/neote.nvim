@@ -1,6 +1,18 @@
 return {
     parse_frontmatter = function(path)
-        local content = table.concat(vim.fn.readfile(path), "\n")
+        -- Check if file exists and is readable
+        if not path or vim.fn.filereadable(path) ~= 1 then
+            return {}
+        end
+        
+        local status, content = pcall(function()
+            return table.concat(vim.fn.readfile(path), "\n")
+        end)
+        
+        if not status or not content then
+            return {}
+        end
+        
         local frontmatter = content:match("^%-%-%-%s*(.-)%s*%-%-%-")
         local result = {}
         if frontmatter then
