@@ -88,19 +88,21 @@ return {
 
 1. `:NeoteFind` 搜索/打开笔记，支持模糊匹配 title/alias/description  
    *Use `:NeoteFind` to search/open notes (fuzzy match title/alias/description)*
-2. `:NeoteCapture` 新建笔记，支持模板选择  
+2. `:NeoteSearch` 全文搜索所有笔记内容，并能跳转到匹配位置  
+   *Use `:NeoteSearch` to search all note contents and jump to matches*
+3. `:NeoteCapture` 新建笔记，支持模板选择  
    *Use `:NeoteCapture` to create notes with template selection*
-3. `:NeoteInsert` 插入链接，支持自动补全  
+4. `:NeoteInsert` 插入链接，支持自动补全  
    *Use `:NeoteInsert` to insert links with auto-completion*
-4. 在 `[[name]]` 上按 `gf` 跳转到对应笔记  
+5. 在 `[[name]]` 上按 `gf` 跳转到对应笔记  
    *Press `gf` on `[[name]]` to jump to the note*
-5. `:NeoteLinks` 查看当前笔记所有出链/入链并跳转  
+6. `:NeoteLinks` 查看当前笔记所有出链/入链并跳转  
    *Use `:NeoteLinks` to view all outlinks/inlinks and jump*
-6. `:NeoteGraph` 查看笔记网络关系图  
+7. `:NeoteGraph` 查看笔记网络关系图  
    *Use `:NeoteGraph` to view the note network graph*
-7. `:NeoteDiary` 创建日记，可选择每日/每周/每月  
+8. `:NeoteDiary` 创建日记，可选择每日/每周/每月  
    *Use `:NeoteDiary` to create diary entries (daily/weekly/monthly)*
-8. `:NeoteDiaryFind` 搜索浏览所有日记  
+9. `:NeoteDiaryFind` 搜索浏览所有日记  
    *Use `:NeoteDiaryFind` to search all diary entries*
 
 ---
