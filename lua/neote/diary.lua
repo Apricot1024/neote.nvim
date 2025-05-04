@@ -53,7 +53,7 @@ function M.create_diary(type)
     -- 检查是否已存在，如果存在则直接打开
     if vim.fn.filereadable(path) == 1 then
         vim.cmd("tabnew " .. path)
-        vim.notify("打开已存在的" .. type .. "日记", vim.log.levels.INFO)
+        vim.notify("Opening existed " .. type .. " diary", vim.log.levels.INFO)
         return
     end
     
