@@ -107,7 +107,7 @@ function M.create(filename)
                 content = content:gsub("{{date}}", os.date("%Y-%m-%d"))
             end
             vim.fn.writefile(vim.split(content, "\n"), filename)
-            vim.cmd("tabnew "..filename)
+            vim.cmd("edit "..filename)
         end)
     end
     if filename and filename ~= "" then

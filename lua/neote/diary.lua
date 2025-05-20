@@ -52,7 +52,7 @@ function M.create_diary(type)
     
     -- 检查是否已存在，如果存在则直接打开
     if vim.fn.filereadable(path) == 1 then
-        vim.cmd("tabnew " .. path)
+        vim.cmd("edit " .. path)
         vim.notify("Opening existed " .. type .. " diary", vim.log.levels.INFO)
         return
     end
@@ -100,7 +100,7 @@ tags: diary, %s
     
     -- 写入文件并打开
     vim.fn.writefile(vim.split(content, "\n"), path)
-    vim.cmd("tabnew " .. path)
+    vim.cmd("edit " .. path)
     vim.notify("已创建" .. type .. "日记: " .. filename, vim.log.levels.INFO)
 end
 
@@ -184,7 +184,7 @@ function M.find_diary(opts)
                 local selection = action_state.get_selected_entry()
                 actions.close(prompt_bufnr)
                 if selection and selection.value then
-                    vim.cmd("tabnew " .. selection.value)
+                    vim.cmd("edit " .. selection.value)
                 end
             end)
             return true

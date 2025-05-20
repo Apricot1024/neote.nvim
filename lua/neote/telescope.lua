@@ -152,7 +152,7 @@ local function find_notes()
                 -- 若有 selection.value，直接打开文件
                 if selection and selection.value then
                     actions.close(prompt_bufnr)
-                    vim.cmd("tabnew " .. selection.value)
+                    vim.cmd("edit " .. selection.value)
                 else
                     local current_line = action_state.get_current_line()
                     actions.close(prompt_bufnr)
@@ -449,7 +449,7 @@ local function search_note_content()
                 if selection and selection.value then
                     -- 获取当前搜索文本，用于跳转定位
                     local search_text = action_state.get_current_line()
-                    vim.cmd("tabnew " .. selection.value)
+                    vim.cmd("edit " .. selection.value)
                     
                     -- 如果有搜索文本，尝试跳转到第一个匹配位置
                     if search_text and search_text ~= "" then
