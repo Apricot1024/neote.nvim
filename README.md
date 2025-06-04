@@ -69,7 +69,7 @@ return {
 		{ "<leader>nc", "<cmd>NeoteCapture<cr>", desc = "Capture note" },
 		{ "<leader>ndc", "<cmd>NeoteDiary<cr>", desc = "Create diary entry" },
 		{ "<leader>ndf", "<cmd>NeoteDiaryFind<cr>", desc = "Find diary entries" },
-    { "<leader>ns", "<cmd>NeoteSearch<cr>", desc = "Search notes" },
+		{ "<leader>ns", "<cmd>NeoteSearch<cr>", desc = "Search notes" },
 
 	},
 	config = function(_, opts)
